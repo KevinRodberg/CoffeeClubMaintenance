@@ -1,7 +1,17 @@
-[0m[0K'\\ad.sfwmd.gov\dfsroot\data\wsd\SUP\devel\source\R\FirstR_projWithSVN'[0K[?25l
-CMD.EXE was started with the above path as the current directory.[0K
-UNC paths are not supported.  Defaulting to Windows directory.[0K
-Microsoft Windows [Version 6.1.7601][0K
+[0m[0KMicrosoft Windows [Version 6.1.7601][0K[?25l
 Copyright (c) 2009 Microsoft Corporation.  All rights reserved.[0K
 [0K
-C:\Windows>[0K[?25h
+Y:\devel\source\R\FirstR_GitProj>[0K[?25hgit remote add origin https://github.com/KevinRodberg/CoffeeClubMaintenance.git[0K]0;  - git  remote add origin https://github.com/KevinRodberg/CoffeeClubMaintenance.git[?25l
+[0K[?25h]0; [?25l
+Y:\devel\source\R\FirstR_GitProj>[0K[?25h^V[0K[?25lY:\devel\source\R\FirstR_GitProj>[0K[?25hgit push -u origin master[0K]0;  - git  push -u origin master[?25l
+[0K[?25hCounting objects: 40, done.[0K[?25l
+[0K[?25hDelta compression using up to 4 threads.[0K[?25l
+Compressing objects: 100% (31/31), done.[0K
+Writing objects:   7% (3/40)[0K[2G[?25h[?25lWriting objects: 100% (40/40), 6.91 KiB | 321.00 KiB/s, done.[0K
+Total 40 (delta 6), reused 0 (delta 0)[0K
+[0K[?25hremote: Resolving deltas: 100% (6/6), done.[0K[?25l
+[0K[?25hTo https://github.com/KevinRodberg/CoffeeClubMaintenance.git[0K[?25l
+ * [new branch]      master -> master[0K
+[0K[?25hBranch 'master' set up to track remote branch 'master' from 'origin'.[0K[?25l
+[0K[?25h]0; [?25l
+Y:\devel\source\R\FirstR_GitProj>[0K[?25h

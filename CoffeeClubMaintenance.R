@@ -10,7 +10,7 @@ CCDues<- CCDues[with(CCDues,order(-DisplayGraph,-xtfrm(Date),Source)),]
 
 #
 # create records for all unPaid membership dues
-# and update members status list
+# and  members status list
 #
 
 # Vectorize coerces a function "timeLastDayInMonth" to work with a list
