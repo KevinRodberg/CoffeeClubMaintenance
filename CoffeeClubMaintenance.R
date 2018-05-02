@@ -37,9 +37,10 @@ PaidUp <-subset(CCDues,as.Date(Date) == as.Date(eom[[13]]))
 
 # Determine who is not paid for this month and assign records $0.00 paid for This eom
 unPaid<- subset(CurrMmbrs,!(CurrMmbrs$Name %in% PaidUp$Name))
+if (nrow(unPaid) > 0){
 unPaid$Date<-as.Date((eom[[13]]))
 unPaid$Paid<-0.00
-
+}
 # Determine last month Membership dues are paid until
 latest <- aggregate(CCDues$Date, list(CCDues$Name,CCDues$Source,CCDues$DisplayGraph, CCDues$Paid),max)
 colnames(latest) <- c('Name','Source','DisplayGraph','Paid','Date')
