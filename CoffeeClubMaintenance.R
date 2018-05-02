@@ -19,43 +19,53 @@ eom <-(Vectorize(timeLastDayInMonth))(seq(as.Date(Sys.Date()-365), length=24, by
 
 # eom[12] is last month
 # eom[13] is this month
+
+# Members From 2 month ago:
 MmbrLast2Mon<-subset(CCDues,as.Date(Date) == as.Date((eom[[11]])))
+CurrMmbrs<-MmbrLast2Mon[MmbrLast2Mon$Source == 'Membership' ,]
+
+# Members from last month
 MmbrLastMon<-subset(CCDues,as.Date(Date) == as.Date((eom[[12]])))
-paidThisMonth <-subset(CCDues,as.Date(Date) == as.Date(eom[[13]]))
 
-MmbrThisMon<-MmbrLast2Mon[MmbrLast2Mon$Source == 'Membership' ,]
+# Combine current member lists
+CurrMmbrs<-rbind(CurrMmbrs,MmbrLastMon[MmbrLastMon$Source == 'Membership' ,])
+CurrMmbrs<-aggregate(CurrMmbrs$Date,list(CurrMmbrs$Name,CurrMmbrs$Source,CurrMmbrs$DisplayGraph,CurrMmbrs$Paid),max)
+colnames(CurrMmbrs) <- c('Name','Source','DisplayGraph','Paid','Date')
 
-MmbrThisMon<-rbind(MmbrThisMon,MmbrLastMon[MmbrLastMon$Source == 'Membership' ,])
-MmbrThisMon<-aggregate(MmbrThisMon$Date,list(MmbrThisMon$Name,MmbrThisMon$Source,MmbrThisMon$DisplayGraph,MmbrThisMon$Paid),max)
-colnames(MmbrThisMon) <- c('Name','Source','DisplayGraph','Paid','Date')
-unPaidMmbrThisMon<- subset(MmbrThisMon,!(MmbrThisMon$Name %in% paidThisMonth$Name))
-unPaidMmbrThisMon$Date<-as.Date((eom[[13]]))
-unPaidMmbrThisMon$Paid<-0.00
-MmbrThisMonStatus <-rbind(paidThisMonth[paidThisMonth$Source == 'Membership' ,]
-                          ,unPaidMmbrThisMon[unPaidMmbrThisMon$Source == 'Membership' ,])
-MemberList <-MmbrThisMonStatus[,c('Name','Source','Paid','Date')]
+# Members already paid up for the month
+PaidUp <-subset(CCDues,as.Date(Date) == as.Date(eom[[13]]))
 
+# Determine who is not paid for this month and assign records $0.00 paid for This eom
+unPaid<- subset(CurrMmbrs,!(CurrMmbrs$Name %in% PaidUp$Name))
+unPaid$Date<-as.Date((eom[[13]]))
+unPaid$Paid<-0.00
+
+# Determine last month Membership dues are paid until
 latest <- aggregate(CCDues$Date, list(CCDues$Name,CCDues$Source,CCDues$DisplayGraph, CCDues$Paid),max)
 colnames(latest) <- c('Name','Source','DisplayGraph','Paid','Date')
 latest$Date <- as.Date(latest$Date)
+
 paidUntil <-subset(latest,as.Date(latest$Date) > Sys.Date() & latest$Source=='Membership')
-paidUntil<-rbind(subset(MmbrThisMon,!(MmbrThisMon$Name %in% paidThisMonth$Name)),paidUntil)
+paidUntil<-rbind(subset(CurrMmbrs,!(CurrMmbrs$Name %in% PaidUp$Name)),paidUntil)
 paidUntil$Date <- as.Date(paidUntil$Date)
+
+# Save memberlist for CoffeeClub Excel workbook
 paidUntil$DisplayGraph <- NULL
 write.csv(paidUntil,"~/Personal/Memberlist.csv")
-
-CCDues <- rbind(CCDues,unPaidMmbrThisMon)
-
-
-CCDues<- CCDues[with(CCDues,order(-DisplayGraph,-xtfrm(Date),Source)),]
 
 #
 # Create Graph for Past Year's Income and Expense
 #
+
+CCDues <- rbind(CCDues,unPaid)
+CCDues<- CCDues[with(CCDues,order(-DisplayGraph,-xtfrm(Date),Source)),]
+
 CCdata<-subset(CCDues,  as.Date(Date) > as.Date(eom[[1]])
                & as.Date(Date) < as.Date(eom[[14]]))
 CCdata$Date <- as.Date(CCdata$Date)
 reserves <-sum(CCDues$Paid)
+
+
 library(scales)
 library(timeDate)
 base<-ggplot(CCdata, aes(x=Date,y=Paid,fill=Source)) + geom_col() 
