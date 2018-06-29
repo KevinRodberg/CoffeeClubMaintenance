@@ -1,3 +1,11 @@
+list.of.packages <-  c("editData","XLConnect","dplyr", "ggplot2","readxl",
+                       "timeDate")
+
+new.packages <-
+  list.of.packages[!(list.of.packages %in% installed.packages()[, "Package"])]
+
+if (length(new.packages))
+  install.packages(new.packages)
 
 library(editData)
 require(XLConnect)
@@ -5,7 +13,7 @@ library(readxl)
 library(ggplot2)
 library(timeDate)
 
-CCDues <- read_excel("~/Personal/CoffeeClubDuesByPivot.xlsx",sheet = "LineItemAcct")
+CCDues <- read_excel("h:/Docs/Personal/CoffeeClubDuesByPivot.xlsm",sheet = "LineItemAcct")
 CCDues<- CCDues[with(CCDues,order(-DisplayGraph,-xtfrm(Date),Source)),]
 
 #
@@ -15,30 +23,34 @@ CCDues<- CCDues[with(CCDues,order(-DisplayGraph,-xtfrm(Date),Source)),]
 
 # Vectorize coerces a function "timeLastDayInMonth" to work with a list
 # timeLastDayInMonth function calculates the last day of the month a date falls in
-eom <-(Vectorize(timeLastDayInMonth))(seq(as.Date(Sys.Date()-365), length=24, by="1 month") )
-
+#eom <-(Vectorize(timeLastDayInMonth))(seq(as.Date(Sys.Date()-365), length=24, by="1 month") )
+eom = c("2017-05-31", "2017-06-30" ,"2017-07-31", "2017-08-31", "2017-9-30", "2017-10-31",
+        "2017-11-30", "2017-12-31", "2018-01-31", "2018-02-28", "2018-03-31", "2018-04-30",
+        "2018-05-31", "2018-06-30", "2018-07-31", "2018-08-31", "2018-09-30", "2018-10-31",
+        "2018-11-30", "2018-12-31", "2019-01-31", "2019-02-28", "2019-03-31", "2019-04-30")
 # eom[12] is last month
 # eom[13] is this month
 
 # Members From 2 month ago:
-MmbrLast2Mon<-subset(CCDues,as.Date(Date) == as.Date((eom[[11]])))
+MmbrLast2Mon<-subset(CCDues,as.Date(Date) == as.Date((eom[[12]])))
 CurrMmbrs<-MmbrLast2Mon[MmbrLast2Mon$Source == 'Membership' ,]
 
 # Members from last month
-MmbrLastMon<-subset(CCDues,as.Date(Date) == as.Date((eom[[12]])))
+MmbrLastMon<-subset(CCDues,as.Date(Date) == as.Date((eom[[13]])))
 
 # Combine current member lists
 CurrMmbrs<-rbind(CurrMmbrs,MmbrLastMon[MmbrLastMon$Source == 'Membership' ,])
-CurrMmbrs<-aggregate(CurrMmbrs$Date,list(CurrMmbrs$Name,CurrMmbrs$Source,CurrMmbrs$DisplayGraph,CurrMmbrs$Paid),max)
+CurrMmbrs<-aggregate(CurrMmbrs$Date,list(CurrMmbrs$Name,CurrMmbrs$Source,
+                                         CurrMmbrs$DisplayGraph,CurrMmbrs$Paid),max)
 colnames(CurrMmbrs) <- c('Name','Source','DisplayGraph','Paid','Date')
 
 # Members already paid up for the month
-PaidUp <-subset(CCDues,as.Date(Date) == as.Date(eom[[13]]))
+PaidUp <-subset(CCDues,as.Date(Date) == as.Date(eom[[14]]))
 
 # Determine who is not paid for this month and assign records $0.00 paid for This eom
 unPaid<- subset(CurrMmbrs,!(CurrMmbrs$Name %in% PaidUp$Name))
 if (nrow(unPaid) > 0){
-unPaid$Date<-as.Date((eom[[13]]))
+unPaid$Date<-as.Date((eom[[14]]))
 unPaid$Paid<-0.00
 }
 # Determine last month Membership dues are paid until
@@ -52,7 +64,7 @@ paidUntil$Date <- as.Date(paidUntil$Date)
 
 # Save memberlist for CoffeeClub Excel workbook
 paidUntil$DisplayGraph <- NULL
-write.csv(paidUntil,"~/Personal/Memberlist.csv")
+write.csv(paidUntil,"H:/Docs/Personal/Memberlist.csv")
 
 #
 # Create Graph for Past Year's Income and Expense
