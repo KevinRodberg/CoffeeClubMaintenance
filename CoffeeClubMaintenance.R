@@ -1,21 +1,26 @@
+#--
+#   package management:
+#     provide automated means for first time use of script to automatically 
+#	  install any new packages required for this code, with library calls 
+#	  wrapped in a for loop.
+#--
+pkgChecker <- function(x){
+  for( i in x ){
+    if( ! require( i , character.only = TRUE ) ){
+      install.packages( i , dependencies = TRUE )
+      require( i , character.only = TRUE )
+    }
+  }
+}
 list.of.packages <-  c("editData","XLConnect","dplyr", "ggplot2","readxl",
                        "timeDate")
 
-new.packages <-
-  list.of.packages[!(list.of.packages %in% installed.packages()[, "Package"])]
+suppressWarnings(pkgChecker(list.of.packages))
 
-if (length(new.packages))
-  install.packages(new.packages)
 
-library(editData)
-require(XLConnect)
-library(readxl)
-library(ggplot2)
-library(timeDate)
-
-CCDues <- read_excel("h:/Docs/Personal/CoffeeClubDuesByPivot.xlsm",sheet = "LineItemAcct")
-CCDues<- CCDues[with(CCDues,order(-DisplayGraph,-xtfrm(Date),Source)),]
-
+CCDues <- read_excel("h:/Docs/Personal/CoffeeClubDuesByPivot.xlsm",sheet = "LineItems")
+CCDues<- CCDues[with(CCDues,order(-DisplayGraph,-xtfrm(Date),Source)),c(1:5)]
+CCDues<- CCDues[CCDues$DisplayGraph==TRUE ,]
 #
 # create records for all unPaid membership dues
 # and  members status list
@@ -24,29 +29,26 @@ CCDues<- CCDues[with(CCDues,order(-DisplayGraph,-xtfrm(Date),Source)),]
 # Vectorize coerces a function "timeLastDayInMonth" to work with a list
 # timeLastDayInMonth function calculates the last day of the month a date falls in
 eom <-(Vectorize(timeLastDayInMonth))(seq(as.Date(Sys.Date()-365), length=24, by="1 month") )
-#eom = c("2017-06-30" ,"2017-07-31", "2017-08-31", "2017-9-30", "2017-10-31",
-#        "2017-11-30", "2017-12-31", "2018-01-31", "2018-02-28", "2018-03-31", "2018-04-30",
-#        "2018-05-31", "2018-06-30", "2018-07-31", "2018-08-31", "2018-09-30", "2018-10-31",
-#        "2018-11-30", "2018-12-31", "2019-01-31", "2019-02-28", "2019-03-31", "2019-04-30")
+
 # eom[12] is last month
 # eom[13] is this month
 monIndex = 12
 # deduct a month if past due processing
-if (format(as.Date(Sys.Date(),"%m"))< format(as.Date(eom[[monIndex+2]]),"%m"))
+if ((format(as.Date(Sys.Date()),"%m")< format(as.Date(eom[[monIndex+2]]),"%m")) |
+    (format(as.Date(Sys.Date()),"%m")>= "12"))
     {
       monIndex= 11
       }
 # Members From 2 month ago:
-#MmbrLast2Mon<-subset(CCDues,as.Date(Date) == as.Date(eom[[monIndex]]))
-#CurrMmbrs<-MmbrLast2Mon[MmbrLast2Mon$Source == 'Membership' ,]
-
+MmbrLast2Mon<-subset(CCDues,as.Date(Date) == as.Date(eom[[monIndex]]))
+CurrMmbrs<-MmbrLast2Mon[MmbrLast2Mon$Source == 'Membership',]
 # Members from last month
 MmbrLastMon<-subset(CCDues,as.Date(Date) == as.Date((eom[[monIndex+1]])))
 
 # Combine current member lists
 CurrMmbrs<-rbind(CurrMmbrs,MmbrLastMon[MmbrLastMon$Source == 'Membership' ,])
-CurrMmbrs<-aggregate(CurrMmbrs$Date,list(CurrMmbrs$Name,CurrMmbrs$Source,
-                                         CurrMmbrs$DisplayGraph,CurrMmbrs$Paid),max)
+
+CurrMmbrs<-aggregate(as.Date(CurrMmbrs$Date)~.,CurrMmbrs,FUN="max")
 colnames(CurrMmbrs) <- c('Name','Source','DisplayGraph','Paid','Date')
 
 # Members already paid up for the month
@@ -59,11 +61,13 @@ unPaid$Date<-as.Date((eom[[monIndex+2]]))
 unPaid$Paid<-0.00
 }
 # Determine last month Membership dues are paid until
-latest <- aggregate(CCDues$Date, list(CCDues$Name,CCDues$Source,CCDues$DisplayGraph, CCDues$Paid),max)
+#latest <- aggregate(CCDues$Date, list(CCDues$Name,CCDues$Source,CCDues$DisplayGraph, CCDues$Paid),max)
+latest <- aggregate(as.Date(CCDues$Date)~., CCDues,FUN="max")
+
 colnames(latest) <- c('Name','Source','DisplayGraph','Paid','Date')
 latest$Date <- as.Date(latest$Date)
 
-paidUntil <-subset(latest,as.Date(latest$Date) > Sys.Date() & latest$Source=='Membership')
+paidUntil <-subset(latest,as.Date(latest$Date) >= Sys.Date() & latest$Source=='Membership')
 paidUntil<-rbind(subset(CurrMmbrs,!(CurrMmbrs$Name %in% PaidUp$Name)),paidUntil)
 paidUntil$Date <- as.Date(paidUntil$Date)
 
@@ -75,20 +79,20 @@ write.csv(paidUntil,"H:/Docs/Personal/Memberlist.csv")
 # Create Graph for Past Year's Income and Expense
 #
 
-CCDues <- rbind(CCDues,unPaid)
-CCDues<- CCDues[with(CCDues,order(-DisplayGraph,-xtfrm(Date),Source)),]
-
-CCdata<-subset(CCDues,  as.Date(Date) > as.Date(eom[[1]])
-               & as.Date(Date) < as.Date(eom[[monIndex+2]]))
-CCdata$Date <- as.Date(CCdata$Date)
-reserves <-sum(CCDues$Paid)
-
-
-library(scales)
-library(timeDate)
-base<-ggplot(CCdata, aes(x=Date,y=Paid,fill=Source)) + geom_col() 
-  base <- base + scale_x_date(date_labels = "%m-%y",date_breaks ="4 week")
-  base + ggtitle("B2-2N The 'Good Coffee' Club",
-                 subtitle=paste('Monthly Income and Expense Summary\nCash Reserves = $',
-                                formatC(as.numeric(reserves), format="f", digits =2)))
-
+# CCDues <- rbind(CCDues,unPaid)
+# CCDues<- CCDues[with(CCDues,order(-DisplayGraph,-xtfrm(Date),Source)),]
+# 
+# CCdata<-subset(CCDues,  as.Date(Date) > as.Date(eom[[1]])
+#                & as.Date(Date) < as.Date(eom[[monIndex+2]]))
+# CCdata$Date <- as.Date(CCdata$Date)
+# reserves <-sum(CCDues$Paid)
+# 
+# 
+# library(scales)
+# library(timeDate)
+# base<-ggplot(CCdata, aes(x=Date,y=Paid,fill=Source)) + geom_col() 
+#   base <- base + scale_x_date(date_labels = "%m-%y",date_breaks ="4 week")
+#   base + ggtitle("B2-2N The 'Good Coffee' Club",
+#                  subtitle=paste('Monthly Income and Expense Summary\nCash Reserves = $',
+#                                 formatC(as.numeric(reserves), format="f", digits =2)))
+# 
